@@ -26,7 +26,11 @@ tf_vars := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) \
 	TF_VAR_environment=$(TERRAFORM_ENVIRONMENT) \
 	$(call tfvar, PREFIX) \
 	$(call tfvar, DOMAIN_NAME) \
+	$(call tfvar, ACM_CERTIFICATE_ARN) \
+	$(call tfvar, ROUTE53_ZONE_ID) \
+	$(call tfvar, MANAGE_ROUTE53_RECORDS) \
 	$(call tfvar, BUCKET_PREFIX) \
+	$(call tfvar, ENABLE_CLICKHOUSE) \
 	$(call tfvar, CLIENT_CLUSTER_SIZE) \
 	$(call tfvar, CLIENT_SERVER_MACHINE_TYPE) \
 	$(call tfvar, CLIENT_SERVER_NESTED_VIRTUALIZATION) \

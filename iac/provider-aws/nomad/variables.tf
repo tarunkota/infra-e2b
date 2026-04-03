@@ -35,6 +35,11 @@ variable "clickhouse_jobs_prefix" {
   type = string
 }
 
+variable "enable_clickhouse" {
+  type    = bool
+  default = false
+}
+
 # Cluster sizes
 variable "api_cluster_size" {
   type = number

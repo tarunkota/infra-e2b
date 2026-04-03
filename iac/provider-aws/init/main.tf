@@ -11,6 +11,7 @@ module "network" {
 }
 
 module "cloudflare" {
+  count  = var.use_cloudflare ? 1 : 0
   source = "../modules/cloudflare"
 
   prefix = var.prefix

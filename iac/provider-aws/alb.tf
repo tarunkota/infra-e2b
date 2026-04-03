@@ -73,7 +73,7 @@ resource "aws_lb_listener" "ingress_wildcard" {
   protocol = "HTTPS"
 
   ssl_policy      = "ELBSecurityPolicy-2016-08"
-  certificate_arn = aws_acm_certificate_validation.wildcard.certificate_arn
+  certificate_arn = local.effective_certificate_arn
 
   default_action {
     type             = "forward"

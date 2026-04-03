@@ -8,7 +8,7 @@ resource "random_password" "volume_token_key" {
 }
 
 locals {
-  clickhouse_connection_string = var.clickhouse_cluster_size > 0 ? "clickhouse://${var.clickhouse_username}:${var.clickhouse_password}@clickhouse.service.consul:${var.clickhouse_port}/${var.clickhouse_database}" : ""
+  clickhouse_connection_string = var.enable_clickhouse && var.clickhouse_cluster_size > 0 ? "clickhouse://${var.clickhouse_username}:${var.clickhouse_password}@clickhouse.service.consul:${var.clickhouse_port}/${var.clickhouse_database}" : ""
   orchestrator_artifact_source = "s3::https://${var.fc_env_pipeline_bucket_name}.s3.${var.aws_region}.amazonaws.com/orchestrator?etag=${data.aws_s3_object.orchestrator.etag}"
 }
 
@@ -28,6 +28,8 @@ data "aws_ecr_image" "client_proxy" {
 }
 
 data "aws_ecr_image" "clickhouse_migrator" {
+  count = var.enable_clickhouse ? 1 : 0
+
   repository_name = var.clickhouse_migrator_repository_name
   image_tag       = "latest"
 }
@@ -275,6 +277,7 @@ module "logs_collector" {
 # ClickHouse
 # ---
 module "clickhouse" {
+  count  = var.enable_clickhouse ? 1 : 0
   source = "../../modules/job-clickhouse"
 
   provider_name = "aws"
@@ -299,5 +302,5 @@ module "clickhouse" {
   aws_region    = var.aws_region
   backup_bucket = var.clickhouse_backups_bucket_name
 
-  clickhouse_migrator_image = data.aws_ecr_image.clickhouse_migrator.image_uri
+  clickhouse_migrator_image = var.enable_clickhouse ? data.aws_ecr_image.clickhouse_migrator[0].image_uri : ""
 }

@@ -49,6 +49,7 @@ data "aws_s3_bucket" "loki_bucket" {
 }
 
 data "aws_s3_bucket" "clickhouse_bucket" {
+  count  = var.enable_clickhouse ? 1 : 0
   bucket = var.clickhouse_backups_bucket_name
 }
 
@@ -251,6 +252,7 @@ module "api" {
 }
 
 module "clickhouse" {
+  count  = var.enable_clickhouse ? 1 : 0
   source = "../modules/nodepool-clickhouse"
 
   prefix         = var.prefix
@@ -274,7 +276,7 @@ module "clickhouse" {
   node_pool_name                    = var.clickhouse_node_pool_name
   clickhouse_az                     = var.clickhouse_az
   clickhouse_subnet_id              = var.clickhouse_subnet_id
-  clickhouse_backups_bucket_arn     = data.aws_s3_bucket.clickhouse_bucket.arn
+  clickhouse_backups_bucket_arn     = var.enable_clickhouse ? data.aws_s3_bucket.clickhouse_bucket[0].arn : ""
   job_constraint_prefix             = var.clickhouse_job_constraint_prefix
   consul_acl_token                  = var.consul_acl_token_secret
   consul_gossip_encryption_key      = var.consul_gossip_encryption_key
