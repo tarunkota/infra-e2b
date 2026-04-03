@@ -5,11 +5,6 @@ terraform {
       version = "~> 6.35.1"
     }
 
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "4.48.0"
-    }
-
     nomad = {
       source  = "hashicorp/nomad"
       version = "2.1.0"
@@ -26,10 +21,6 @@ terraform {
   backend "s3" {
     key = "terraform/orchestration/state"
   }
-}
-
-provider "cloudflare" {
-  api_token = module.init.cloudflare.token
 }
 
 provider "aws" {}
@@ -58,6 +49,7 @@ module "init" {
   ]
 
   allow_force_destroy = var.allow_force_destroy
+  use_cloudflare     = var.use_cloudflare
 }
 
 locals {
@@ -154,7 +146,8 @@ module "cluster" {
   client_node_labels                  = var.client_node_labels
 
   clickhouse_az                    = "${data.aws_region.current.name}a"
-  clickhouse_cluster_size          = var.clickhouse_cluster_size
+  enable_clickhouse               = var.enable_clickhouse
+  clickhouse_cluster_size          = var.enable_clickhouse ? var.clickhouse_cluster_size : 0
   clickhouse_image_family_prefix   = var.clickhouse_image_family_prefix != "" ? var.clickhouse_image_family_prefix : local.ami_family_prefix
   clickhouse_machine_type          = var.clickhouse_server_machine_type
   clickhouse_node_pool_name        = local.clickhouse_pool_name
@@ -184,6 +177,7 @@ module "nomad" {
   api_node_pool          = local.api_pool_name
   clickhouse_node_pool   = local.clickhouse_pool_name
   clickhouse_jobs_prefix = local.clickhouse_jobs_prefix
+  enable_clickhouse      = var.enable_clickhouse
 
   api_cluster_size               = var.api_cluster_size
   api_repository_name            = module.init.api_repository_name
@@ -222,12 +216,12 @@ module "nomad" {
 
   loki_bucket_name = module.init.loki_bucket_name
 
-  clickhouse_cluster_size             = var.clickhouse_cluster_size
-  clickhouse_username                 = module.init.clickhouse.username
-  clickhouse_password                 = module.init.clickhouse.password
-  clickhouse_server_secret            = module.init.clickhouse.server_secret
-  clickhouse_backups_bucket_name      = module.init.clickhouse_backups_bucket_name
-  clickhouse_migrator_repository_name = module.init.clickhouse_migrator_repository_name
+  clickhouse_cluster_size             = var.enable_clickhouse ? var.clickhouse_cluster_size : 0
+  clickhouse_username                 = var.enable_clickhouse ? module.init.clickhouse.username : ""
+  clickhouse_password                 = var.enable_clickhouse ? module.init.clickhouse.password : ""
+  clickhouse_server_secret            = var.enable_clickhouse ? module.init.clickhouse.server_secret : ""
+  clickhouse_backups_bucket_name      = var.enable_clickhouse ? module.init.clickhouse_backups_bucket_name : ""
+  clickhouse_migrator_repository_name = var.enable_clickhouse ? module.init.clickhouse_migrator_repository_name : ""
 
   launch_darkly_api_key = module.init.launch_darkly_api_key
 

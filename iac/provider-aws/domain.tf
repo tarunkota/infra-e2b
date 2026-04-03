@@ -1,16 +1,10 @@
 locals {
-  domain_parts        = split(".", var.domain_name)
-  domain_is_subdomain = length(local.domain_parts) > 2
-
-  // Take last 2 parts (1 dot)
-  domain_root = local.domain_is_subdomain ? join(".", slice(local.domain_parts, length(local.domain_parts) - 2, length(local.domain_parts))) : var.domain_name
-}
-
-data "cloudflare_zone" "domain" {
-  name = local.domain_root
+  effective_certificate_arn = var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate_validation.wildcard[0].certificate_arn
 }
 
 resource "aws_acm_certificate" "wildcard" {
+  count = var.acm_certificate_arn == "" ? 1 : 0
+
   domain_name       = "*.${var.domain_name}"
   validation_method = "DNS"
 
@@ -19,31 +13,55 @@ resource "aws_acm_certificate" "wildcard" {
   }
 }
 
-resource "aws_acm_certificate_validation" "wildcard" {
-  certificate_arn = aws_acm_certificate.wildcard.arn
-}
-
-resource "cloudflare_record" "cert" {
-  for_each = {
-    for dvo in aws_acm_certificate.wildcard.domain_validation_options : dvo.domain_name => {
+resource "aws_route53_record" "cert_validation" {
+  for_each = var.acm_certificate_arn == "" && var.manage_route53_records && var.route53_zone_id != "" ? {
+    for dvo in aws_acm_certificate.wildcard[0].domain_validation_options : dvo.domain_name => {
       name  = dvo.resource_record_name
       value = dvo.resource_record_value
       type  = dvo.resource_record_type
     }
-  }
+  } : {}
 
-  zone_id = data.cloudflare_zone.domain.zone_id
+  zone_id = var.route53_zone_id
   name    = each.value.name
   type    = each.value.type
-  value   = each.value.value
-  ttl     = 3600
+  records = [each.value.value]
+  ttl     = 60
 }
 
-resource "cloudflare_record" "routing" {
-  zone_id = data.cloudflare_zone.domain.zone_id
-  name    = "*.${var.domain_name}"
-  type    = "CNAME"
-  value   = aws_lb.ingress.dns_name
-  ttl     = 3600
-  proxied = false
+resource "aws_acm_certificate_validation" "wildcard" {
+  count = var.acm_certificate_arn == "" ? 1 : 0
+
+  certificate_arn = aws_acm_certificate.wildcard[0].arn
+  validation_record_fqdns = var.manage_route53_records && var.route53_zone_id != "" ? [
+    for record in aws_route53_record.cert_validation : record.fqdn
+  ] : []
+}
+
+resource "aws_route53_record" "e2b_routing" {
+  count = var.manage_route53_records && var.route53_zone_id != "" ? 1 : 0
+
+  zone_id = var.route53_zone_id
+  name    = "e2b.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.ingress.dns_name
+    zone_id                = aws_lb.ingress.zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "nomad_routing" {
+  count = var.manage_route53_records && var.route53_zone_id != "" ? 1 : 0
+
+  zone_id = var.route53_zone_id
+  name    = "nomad.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.ingress.dns_name
+    zone_id                = aws_lb.ingress.zone_id
+    evaluate_target_health = true
+  }
 }

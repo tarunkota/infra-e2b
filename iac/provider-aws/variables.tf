@@ -2,6 +2,26 @@ variable "domain_name" {
   type = string
 }
 
+variable "acm_certificate_arn" {
+  type    = string
+  default = ""
+}
+
+variable "manage_route53_records" {
+  type    = bool
+  default = true
+}
+
+variable "route53_zone_id" {
+  type    = string
+  default = ""
+}
+
+variable "use_cloudflare" {
+  type    = bool
+  default = false
+}
+
 variable "allow_force_destroy" {
   default = false
 }
@@ -62,6 +82,11 @@ variable "client_proxy_count" {
 variable "clickhouse_cluster_size" {
   type    = number
   default = 1
+}
+
+variable "enable_clickhouse" {
+  type    = bool
+  default = false
 }
 
 variable "clickhouse_server_machine_type" {

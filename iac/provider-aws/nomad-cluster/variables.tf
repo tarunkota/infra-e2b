@@ -102,6 +102,11 @@ variable "clickhouse_cluster_size" {
   type = number
 }
 
+variable "enable_clickhouse" {
+  type    = bool
+  default = false
+}
+
 variable "clickhouse_az" {
   type = string
 }

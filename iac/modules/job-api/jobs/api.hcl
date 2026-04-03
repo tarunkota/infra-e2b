@@ -45,7 +45,7 @@ job "api" {
       tags = [
         "traefik.enable=true",
 
-        "traefik.http.routers.api.rule=HostRegexp(`api.{domain:.+}`)",
+        "traefik.http.routers.api.rule=Host(`e2b.${domain_name}`)",
         "traefik.http.routers.api.ruleSyntax=v2",
         "traefik.http.routers.api.priority=500"
       ]
